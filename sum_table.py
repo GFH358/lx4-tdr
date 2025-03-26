@@ -3,22 +3,24 @@ import os
 import openpyxl
 from openpyxl.styles import Font
 import win32com.client
-
+import main
 
 '''
 TDR规定:
 1. 所有TDR版本需要放在同一个文件夹[Lx4_TDR]下，命名格式为：Lx4_TDRv2.1
 2. 总表文件需要放在[Lx4_TDR]文件夹内，与各版本文件夹同一级目录
-
 注意事项：
 该模块只能通过通过接口接收数据保证低耦合，不可import外部连接
 '''
-# 日常支持客户问题列表格式：[TDR版本，序号，开始时间，芯片系列，SDK版本，客户，问题描述，现场，生产]，一共9个数据
 mode0_list = ["TDR版本", "序号", "开始时间", "芯片系列", "SDK版本", "客户", "问题描述", "现场", "生产"]
-# ESO模式内部协助列表格式：[TDR版本，序号，开始时间，芯片系列，SDK版本，同事，问题描述，现场，生产]，一共9个数据
 mode1_list = ["TDR版本", "序号", "开始时间", "芯片系列", "SDK版本", "同事", "问题描述", "现场", "生产"]
+# 日常支持客户问题列表格式：[TDR版本，序号，开始时间，芯片系列，SDK版本，客户，问题描述，现场，生产]，一共9个数据
+# ESO模式内部协助列表格式：[TDR版本，序号，开始时间，芯片系列，SDK版本，同事，问题描述，现场，生产]，一共9个数据
 
-tdr_version_unify_name = "Lx4_TDR"          # TDR统一命名,用于后续总表超链接
+# TDR规定:
+# 1. 所有TDR版本需要放在同一个文件夹[Lx4_TDR]下，命名格式为：Lx4_TDRv2.1
+# 2. 总表文件需要放在[Lx4_TDR]文件夹内，与各版本文件夹同一级目录
+tdr_version_unify_name = "Lx4_TDR"          #TDR统一命名,用于后续总表超链接
 stable_path = '..\\'                # 总表路径 (相对路径，上一级目录)
 stable_temp_path = '..\\~$'         # 总表临时文件路径，用于检查excel是否打开
 test_excel_path = "..\\任务目录汇总表.xlsx"
@@ -28,6 +30,7 @@ task_directory_path = "TaskDirectory"
 task_record_path = "TaskRecord"
 stable_sheet_made0_name = "客户问题"        # 客户问题日常支持模式
 stable_sheet_made1_name = "内部测试"        # 内部协助测试模式（ESO模式）
+stable_wps_compatible_enable = 0    # wps兼容模式
 
 # 检查总表excel文件是否存在，若不存在则创建
 def stable_check_excel_exist(file_name):
@@ -84,6 +87,7 @@ def stable_check_excel_open(file_name):
         print('[stable]:excel is close，use <openpyxl>')
         return 0
 
+
 # 获取excel工作表列表 //不使用
 '''
 def stable_get_excel_sheet_list(file):
@@ -130,7 +134,7 @@ def stable_get_hyperlink_path(mode,datalist,hyperlink_str,hyperlink_input_path):
 
 
 # excel文件打开条件下添加一行数据，使用 <xlwings>
-def stable_add_data_in_open(datalist,file,sheet_name,hyperlink_str,hyperlink_path):
+def stable_add_data_in_open(datalist, file, sheet_name, hyperlink_str, hyperlink_path):
     wb = xw.Book(file)                        # 连接到已打开的 Excel 文件
 
     # 获取工作表是否存在 方法1：
@@ -223,6 +227,7 @@ def stable_add_data_in_close(datalist,file,sheet_name,hyperlink_str,hyperlink_pa
 # 数据预处理
 def stable_data_pretreatment(datalist):
     output_list = datalist
+    cnt = 0
     # 打印TDR发过来的数据包类型
     if 0:
         print("stable_data_pretreatment:datalist type:\n")
@@ -245,6 +250,21 @@ def stable_data_pretreatment(datalist):
         output_list[8] = '*'
     return output_list
 
+# 关闭打开的excel文档
+def stable_close_excel(file_path):
+    wb = xw.Book(file_path)     # 连接到已打开的 Excel 文件
+    wb.save()                   # 保存工作簿
+    wb.close()                  #关闭excel文档
+
+# WPS兼容模式
+def stable_set_wps_compatible_enable(en):
+    global stable_wps_compatible_enable
+    stable_wps_compatible_enable = en
+    print(f"[stable]:wps_compatible_set:{en}\n")
+
+def stable_get_wps_compatible_enable():
+    return stable_wps_compatible_enable
+
 
 # excel添加一行新数据
 def stable_add_data(datalist, file, sheet_name, hyperlink_str, hyperlink_path):
@@ -253,11 +273,19 @@ def stable_add_data(datalist, file, sheet_name, hyperlink_str, hyperlink_path):
     file_path = stable_path + file
 
     stable_check_excel_exist(file_path)           # 检查总表是否存在，不存在则创建
-    if(stable_check_excel_open(file)):  # 检查总表是否处于打开状态
-        stable_add_data_in_open(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path)
-    else:
-        # stable_add_data_in_open(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path) # 兼容模式下，强行打开excel输入
+
+    if(stable_get_wps_compatible_enable()):# WPS兼容模式
+        if (stable_check_excel_open(file)):  # 若总表已打开，先关闭
+            print("[stable]:wps_compatible_close_excel\n")
+            stable_close_excel(file_path)
         stable_add_data_in_close(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path)
+    else:# 标准模式
+        if(stable_check_excel_open(file)):  # 检查总表是否处于打开状态
+            stable_add_data_in_open(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path)
+        else:
+            # stable_add_data_in_open(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path) # 兼容模式下，强行打开excel输入
+            stable_add_data_in_close(datalist, file_path, sheet_name, hyperlink_str, hyperlink_path)
+
     print("[stable]:stable add data succeed \n")
 
 

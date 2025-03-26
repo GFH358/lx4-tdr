@@ -30,9 +30,12 @@ else:  #Python 3.x
 import tkinter
 import tkinter.messagebox
 
-tdr_version = "v2.3"
+tdr_version = "v2.4"
+
+# 默认功能设置，后边可能会被gtools配置修改
 developer_mode = 0       # 0：TDR模式；1：开发者模式
-stable_en = 0
+stable_en = 0           # 1：TDR新建目录同时添加一条总表记录
+wps_compatible_enable = 1  # wps环境兼容模式,只可在总表文档关闭下使用总表功能
 
 
 '''
@@ -51,6 +54,7 @@ stable_en = 0
 3.app-软件前端相关
 4.serial0：日常支持，serial1：测试协助
 5.mode0：日常支持，mode1：测试协助
+6.gt-开发者工具gtools模块相关
 '''
 cfg_data = []           # 存储外部配置
 cfg_serial0 = ""        # 日常支持序号
@@ -79,8 +83,10 @@ task_source_sdk_path = "TaskSourceSDK"
 app_title = "Lairx4 Total Directory Report " + tdr_version  # 窗口标题
 
 sys_cfg_path = "guser_config.txt"  # 存储外部配置的txt文件
-sys_project_template_path = "ProjectTemplate.zip"  # 工程目录模板，必须包含PublicSDK文件夹用于解压SDK
+sys_project_template_path = "ProjectTemplate.zip" # 工程目录模板，必须包含PublicSDK文件夹用于解压SDK
 sys_record_template_path = "RecordTemplate.md"      # 工程记录模板
+
+# cfg文件解析校验配置
 
 # cfg文件解析配置
 cfg_serial0_num_line = 0
@@ -89,15 +95,15 @@ cfg_series_check_line = 2
 cfg_series_list_line = 3
 cfg_version_check_line = 4
 cfg_version_list_line = 5
-cfg_developer_tools_line = -1  # 规定开发者指令工具在cfg文件最后一行
+cfg_developer_tools_line = -1
 
-# 开发者指令行解析 # 指令前有关键字【developer tools:】，所以有效位应该从16位后开始算
 developer_mode_bit = 16             # 开发者模式:0关闭，1打开
 developer_stable_en_bit = 17        # 总表自动生成:0关闭，1打开
+wps_compatible_en_bit = 18          # WPS兼容模式：0关闭，1打开
+# 开发者指令行解析
 
 
 
-# cfg文件解析校验配置
 cfg_series_check_str = "series list:\n"
 cfg_version_check_str = "version list:\n"
 cfg_developer_tools_str = "developer tools:"     # 开发者指令关键字
@@ -168,11 +174,20 @@ pop_about_str = "Lairx4 Total Directory Report " + tdr_version + " \n\r" \
                 "2.Fix known issues\n\r" \
 '''
 # v2.3更新说明
+'''
 pop_about_str = "Lairx4 Total Directory Report " + tdr_version + " \n\r" \
                 "by flashy 2024.3.1\n\r" \
                 "\n\r" \
                 "Update description：\n\r" \
                 "1.Add developer tools\n\r" \
+                "2.Fix known issues\n\r" \
+'''
+# v2.4更新说明
+pop_about_str = "Lairx4 Total Directory Report " + tdr_version + " \n\r" \
+                "by flashy 2024.6.23\n\r" \
+                "\n\r" \
+                "Update description：\n\r" \
+                "1.Add wps compatible mode\n\r" \
                 "2.Fix known issues\n\r" \
 
 # 帮助文档
@@ -203,19 +218,49 @@ pop_help_str = " ------------------------< 基本功能 >-----------------------
               "     获取SDK时会解压对应版本源文件夹内所有.zip文件\n\r" \
               "\n\r" \
               "终于写完了(～o￣3￣)～2023.4.22"
-
 pop_gtools_help_str = " --------------------< 开发指令使用说明 >--------------------------\n\r" \
                  "     1. 开发者指令规定在cfg文件最末行，且有关键字[developer tools:]\n\r" \
                  "     2. 第一位开发者模式:0关闭，1打开\n\r" \
                  "     3. 第二位总表自动生成:0关闭，1打开\n\r" \
-                 "     4. 其他位未定义"
-
-developer_mode_bit = 16             # 开发者模式:0关闭，1打开
-developer_stable_en_bit = 17        # 总表自动生成:0关闭，1打开
+                 "     4. 第三位WPS兼容模式:0关闭，1打开\n\r" \
+                 "     5. 其他位未定义"
 # 弹窗
 def guser_popup_window(title_str, show_str):
     my_font = Font(family="宋体",size=12)
     tkinter.messagebox.showinfo(title_str, show_str)
+'''********************************** 开发者工具gtools模块 *******************************************'''
+class Gtools:
+    def __init__(self, name, en, bit):
+        self.name = name
+        self.en = en
+        self.bit = bit
+
+    def get_en(self):
+        return self.en
+
+    def set_en(self,en):
+        self.en = en
+        print(f"[gtools]:set <%s> = {en}" % self.name)
+
+    def query_and_set_en(self,str):
+        str_len = len(str)
+        if str_len >= self.bit:
+            if str[self.bit] == '0':
+                self.en = 0
+                print("[gtools]:disable <%s>!" %self.name)
+            elif str[self.bit] == '1':
+                self.en = 1
+                print("[gtools]:enable <%s>!" %self.name)
+            else:
+                print("[gtools]:undefined <%s>!" %self.name)
+        else:
+            print(f"[gtools]:developer tools no <%s> bit:{self.bit}!" %self.name )
+# 创建实例对象
+gt_developer_mode = Gtools("developer_mode",developer_mode,developer_mode_bit)
+gt_stable = Gtools("stable",stable_en,developer_stable_en_bit)
+gt_wps_compatible = Gtools("wps_compatible",wps_compatible_enable,wps_compatible_en_bit)
+test_bit = Gtools("testbit",1,25)
+
 '''********************************** 总表功能模块 *******************************************'''
 import sum_table
 
@@ -254,20 +299,30 @@ def guser_get_add_stable_data(mode):
 
 # 向总表添加一行新数据
 def guser_add_data_to_stable(mode,hyperlink):
-    if stable_en == 0:
+    # if stable_en == 0:
+    if gt_stable.get_en() == 0:
         return
+    set_stable_wps_compatible_enable(get_wps_compatible_enable())
+
     add_list = guser_get_add_stable_data(mode)      # 获写入总表的数据
     file_name = stable_file_name
     if(mode == '0'):
         sheet_made_name = stable_sheet_made0_name
     elif(mode == '1'):
         sheet_made_name = stable_sheet_made1_name
-    if developer_mode == 1:
+    #if developer_mode == 1:
+    if gt_developer_mode.get_en() == 1:
         sum_table.stable_add_data(add_list, file_name, sheet_made_name, hyperlink, "dev_mode")
         return
     else:
         sum_table.stable_add_data(add_list, file_name, sheet_made_name, hyperlink, "TDR_mode")
         return
+
+def get_wps_compatible_enable():
+    return gt_wps_compatible.get_en()
+
+def set_stable_wps_compatible_enable(en):  # 要使WPS兼容模式生效，需要使用该接口设置stable模块
+    sum_table.stable_set_wps_compatible_enable(en)
 
 '''********************************** 读写外部配置 *******************************************'''
 # 从外部文件读取配置信息
@@ -296,7 +351,7 @@ def guser_write_cfg(datalist,savepath):
     f.close()
     print("sys write cfg data succeed\n")
 
-# 序号+1,传入参数：0是日常支持序号。1是测试协助序号
+# 序号+1,传入参数：1是日常支持序号。2是测试协助序号
 def guser_serial_add(mode):
     global cfg_serial0
     global cfg_serial1
@@ -366,28 +421,31 @@ def guser_get_version_list(cfg_data):
     print("version_list:", output_version_list)
     return output_version_list
 
-# 获取开发者指令(gtools)
+# 获取开发者指令
 def guser_get_developer_tools(cfg_data):
     global developer_mode
     global stable_en
-    if cfg_developer_tools_str in cfg_data[cfg_developer_tools_line]:  # 判断cfg文件末尾行是否有开发者指令关键字
+    if cfg_developer_tools_str in cfg_data[cfg_developer_tools_line]:
         developer_order = cfg_data[cfg_developer_tools_line]
-        developer_order_len = len(developer_order)
+        # developer_order_len = len(developer_order)
 
-        if developer_order_len >= developer_mode_bit and developer_order[developer_mode_bit] == '0':
-            developer_mode = 0
-            print("[developer]:disable <developer_mode>!")
-        elif developer_order_len >= developer_mode_bit and developer_order[developer_mode_bit] == '1':
-            developer_mode = 1
-            print("[developer]:enable <developer_mode>!")
+        test_bit.query_and_set_en(developer_order)
+        gt_developer_mode.query_and_set_en(developer_order)
+        gt_stable.query_and_set_en(developer_order)
+        gt_wps_compatible.query_and_set_en(developer_order)
 
-        if developer_order_len >= developer_stable_en_bit and developer_order[developer_stable_en_bit] == '0':
-            stable_en = 0
-            print("[developer]:disable <stable_en>!")
-        elif developer_order_len >= developer_stable_en_bit and developer_order[developer_stable_en_bit] == '1':
-            stable_en = 1
-            print("[developer]:enable <stable_en>!")
-
+        # if developer_order_len >= developer_mode_bit and developer_order[developer_mode_bit] == '0':
+        #     developer_mode = 0
+        #     print("[developer]:disable <developer_mode>!")
+        # elif developer_order_len >= developer_mode_bit and developer_order[developer_mode_bit] == '1':
+        #     developer_mode = 1
+        #     print("[developer]:enable <developer_mode>!")
+        # if developer_order_len >= developer_stable_en_bit and developer_order[developer_stable_en_bit] == '0':
+        #     stable_en = 0
+        #     print("[developer]:disable <stable_en>!")
+        # elif developer_order_len >= developer_stable_en_bit and developer_order[developer_stable_en_bit] == '1':
+        #     stable_en = 1
+        #     print("[developer]:enable <stable_en>!")
     else:
         print("[developer]:not developer_order!")
 
@@ -491,7 +549,7 @@ def guser_get_preview_output(self, mode):
         app_time = app_time + 'x'
     if app_production == '1':
         app_time = app_time + 's'
-    # 日常支持
+
     if mode == '0':
         serial_num = int(cfg_serial0)
         if(serial_num >= 0 and serial_num <= 9):
@@ -500,7 +558,6 @@ def guser_get_preview_output(self, mode):
         else:
             serial_num = cfg_serial0
         app_preview = serial_num + '.' + app_time + '_' + use_series_str + 'v' + app_version + '_' + app_client + '_' + app_title
-    # 协助测试
     elif mode == '1':
         serial_num = int(cfg_serial1)
         if(serial_num >= 0 and serial_num <= 9):
@@ -550,11 +607,12 @@ def guser_menu_open_source_sdk():
 def guser_menu_open_sum_table():
     path = sum_table.stable_path + stable_file_name
     if os.path.exists(path) == 0:
-        sum_table.stable_check_excel_exist(sum_table.test_excel_path) # 创建总表
+        sum_table.stable_check_excel_exist(sum_table.test_excel_path)
     os.startfile(path)
     print("[menu]:open < %s > success" % stable_file_name)
 def guser_menu_open_sum_table_import():
     top.destroy()
+    set_stable_wps_compatible_enable(get_wps_compatible_enable())
     sum_table_import.sti_app_start()
     print("[menu]:open < sum_table_import > success")
 
@@ -584,12 +642,10 @@ def guser_menu_help():
     print("[menu]:pup < help > success")
     pass
 
-# 菜单栏：gtools使用帮助
 def guser_menu_gtools_help():
     guser_popup_window("开发指令使用说明", pop_gtools_help_str)
     print("[menu]:pup < gtools help > success")
     pass
-
 # 菜单栏主题切换 #不加这么多花里胡哨的功能，不保存在cfg配置里，每次打开会恢复默认
 def guser_menu_theme_switch():
     global sys_theme
@@ -618,7 +674,6 @@ def guser_app_create_menu():
     filemenu2 = tkinter.Menu(menu, tearoff=0)
     filemenu2.add_command(label="Open config", command=guser_menu_setting)
     filemenu2.add_command(label="Read config", command=guser_menu_read_cfg)
-
     filemenu3 = tkinter.Menu(menu, tearoff=0)
     filemenu3.add_command(label="tdr help", command=guser_menu_help)
     filemenu3.add_command(label="gtools help", command=guser_menu_gtools_help)
@@ -627,7 +682,6 @@ def guser_app_create_menu():
     menu.add_cascade(label=u"设置", menu=filemenu2)
     menu.add_cascade(label=u"帮助", menu=filemenu3)
 
-    # menu.add_command(label="帮助", command=guser_menu_help)
     menu.add_command(label="关于", command=guser_menu_about)
 
     menu.add_command(label="主题", command=guser_menu_theme_switch)
@@ -680,7 +734,7 @@ def guser_create_record(app_preview):
 # 创建任务目录单项
 def guser_create_directory(self, app_preview):
     path = task_directory_path + '\\' + app_preview
-    print("create directory:", path)
+    print("create directory:",path)
     cnt = 0
     while (os.path.exists(path)):  # 如果路径下该文件已经存在 # 有序号自加存在，基本不可能有这种情况
         cnt = cnt + 1
@@ -698,6 +752,8 @@ def guser_create_directory(self, app_preview):
     guser_sdk_copier(self, path)  # 向生成目录拷贝公版SDK
 
     os.startfile(path)  # 打开目录
+
+
 
 
 '''********************************** 初始化 *******************************************'''
@@ -841,6 +897,13 @@ class Application_ui(Frame):
             # 完成更新，重设定时器
             self.Combo2.after(500, self.update)
 
+
+
+
+
+
+
+
     '''********************************** GUI生成 *******************************************'''
     def createWidgets(self):
         self.top = self.winfo_toplevel()  # 获取顶层
@@ -920,7 +983,7 @@ class Application_ui(Frame):
         # guser_guide_window()
 
 
-# MAKE按键回调实现！！！！！！！！！
+
 class Application(Application_ui):
     # 这个类实现具体的事件处理回调函数。界面生成代码在Application_ui中。
     def __init__(self, master=None):
@@ -932,11 +995,10 @@ class Application(Application_ui):
         global cfg_data
         cfg_data = guser_read_cfg(sys_cfg_path)  # 读取cfg数据存入系统
         guser_cfg_decode(cfg_data)  # 解析cfg文件
-        self.update_preview()  # 更新预览框
-
+        # self.update_preview()  # 更新预览框 # 6.13 此处不能更新，会影响用户修改预览框结果
         app_preview = guser_get_preview_input(self)  # 获取当前GUI设置
 
-        guser_add_data_to_stable(app_mode, app_preview)  # 添加总表
+        guser_add_data_to_stable(app_mode,app_preview)  # 添加总表
 
         if app_mode == '0':
             guser_create_directory(self, app_preview)  # 生成目录

@@ -1,13 +1,13 @@
-12
-1
+29
+0
 series list:
 AC695N/AC696N/AC697N/AD698N/AC700N/JL701N/AC702
 version list:
-101/102/103
-101a/102a/103bbb
+101/02/03
+001a/012a/103bbb
 101b/102b/103b
 101c/102c/103c
 101d/102d/103d
 101w/102w/103w
 101q/102q/103a
-developer tools:01000
+developer tools:00110

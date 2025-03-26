@@ -1,9 +1,35 @@
 
+
+#-------------------------------------------------------------------
+#xlwings开关文档 # 开发环境验证OK，可以关闭打开的excel文档窗口
+import xlwings as xw
+wb = xw.Book("任务目录汇总表.xlsx")                        # 连接到已打开的 Excel 文件
+# 保存工作簿
+wb.save()
+wb.close()
+
+
+
+#-------------------------------------------------------------------
+
+# import psutil
+#
+# # 列出所有进程的PID
+# for proc in psutil.process_iter():
+#     try:
+#         # 获取进程名称
+#         process_name = proc.name()
+#         # 获取进程ID
+#         process_id = proc.pid
+#         # 输出进程名称和进程ID
+#         print(f"Process: {process_name} PID: {process_id}")
+#     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+#         pass
 #-------------------------------------------------------------------
 # # #10.23 获取excel打开状态
 # import win32com.client
 # import os
-#
+
 # def fileisopen1(filepath):
 #     # 判断Excel文件是否已打开
 #     # 如果目标工作簿已打开则返回TRUE，否则返回FALSE

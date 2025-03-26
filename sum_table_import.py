@@ -27,7 +27,6 @@ import tkinter.messagebox
 from tkinter import filedialog
 
 import sum_table
-
 '''
 命名规则：
 1.sti-总表功能相关
@@ -253,6 +252,8 @@ class Application2_ui(Frame):
             print("[STI]:not [directory] file, use [record] file\n")
             record_list = os.listdir(tdr_record_path)
             for i in range(len(record_list)):
+                if '.md' not in record_list[i]: # 使用record目录导入时，过滤非md文件
+                    continue
                 import_data_list = sti_tdr_resolver(record_list[i])
                 if import_data_list == 0:  # 解析文件失败，跳过本次循环
                     continue
